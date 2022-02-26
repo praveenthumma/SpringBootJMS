@@ -17,10 +17,10 @@ import org.springframework.oxm.xstream.XStreamMarshaller;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.security.AnyTypePermission;
-import com.tp.jmsproject.BookOrderProcessingMessageListner;
 import com.tp.jmsproject.pojo.Book;
 import com.tp.jmsproject.pojo.BookOrder;
 import com.tp.jmsproject.pojo.Customer;
+import com.tp.jmsproject.BookOrderProcessingMessageListner;
 
 @EnableJms
 @Configuration
