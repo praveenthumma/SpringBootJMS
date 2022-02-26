@@ -25,4 +25,27 @@ SingleConnectionFactory subclass that adds Session caching as well MessageProduc
 > - Consider raising the __"sessionCacheSize"__ value in case of a high-concurrency environment.
 > - __This ConnectionFactory requires explicit closing of all Sessions obtained from its shared Connection.__ This is the usual recommendation for native JMS access code anyway. However, with this ConnectionFactory, its use is mandatory in order to actually allow for Session reuse.
 
+## Usage
+> - Create a method that returns SingleConnectionFactory/CachingConnectionFactory and annotate it with @Bean
+> - pass the MOM connectionfactory to the SingleConnectionFactory/CachingConnectionFactory, In this case its ActiveMQConnectionFactory.
+>> - __CachingConnectionFactory factory = new CachingConnectionFactory(new ActiveMQConnectionFactory(user,password,brokerUrl));__
+> - set this in the ListenerContainerFactory
+>> - __factory.setConnectionFactory(activeMqCachingConnectionFactory());__
+>> - see the code example
 
+
+## Transaction Management
+> - Allows for comitting and rollbacking
+> - __PlatformTransactionManager__ Interface implemented for JDBC, JPA, Hibernate and JMS
+> - We will use JmsTransactionManager
+
+### Rollback
+> - Now for JMS transactions there really are only two things that can happen on rollback. 
+>> - For a send on rollback the message is not sent. 
+>> - For a receive however the message is re-queued for retrieval again on the MOM. 
+>> - __The re-queuing of messages is broker dependent.__
+>>> - For active MQ on rollback you can actually configure after a specified number of retries to move messages to a different Queue, which is often called __dead-letter Queue__
+
+### Usage
+> - Create a method that returns PlatformTransactionManager and annotate it with @Bean
+> - __factory.setTransactionManager(jmsTransactionManager());__ in listnerContainerFactory
