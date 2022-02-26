@@ -53,17 +53,15 @@ SingleConnectionFactory subclass that adds Session caching as well MessageProduc
 ### DeadLetterQueue Usage
 
 > -  Create a method that returns JmsTemplate and annotate it with
+>>  @Bean 
+>>  JmsTemplate jmsTemplate() {
+>>  JmsTemplate jmsTemplate = new JmsTemplate(activeMqCachingConnectionFactory());
+>>  jmsTemplate.setMessageConverter(jacksonMessageConverter());
+>>  jmsTemplate.setDeliveryPersistent(true); // to not delete message
+>>  jmsTemplate.setSessionTransacted(true); 	
+>>  return jmsTemplate;
+>>  }
     
-``  @Bean 
-    JmsTemplate jmsTemplate() {
-    	JmsTemplate jmsTemplate = new JmsTemplate(activeMqCachingConnectionFactory());
-    	jmsTemplate.setMessageConverter(jacksonMessageConverter());
-    	jmsTemplate.setDeliveryPersistent(true); // to not delete message
-    	jmsTemplate.setSessionTransacted(true); 	
-    	return jmsTemplate;
-    } ``
-
-
 > - In listnerFactory set 
 >> 		factory.setErrorHandler(t->{
 >>			LOGGER.info("Handling error in Listener for Messages, erro: "+ t.getMessage());;
