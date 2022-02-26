@@ -1,4 +1,4 @@
-package com.tp.jmsproject.pojo;
+package com.tp.jms.pojo;
 
 import java.io.Serializable;
 
@@ -13,8 +13,8 @@ import lombok.ToString;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class Book  {
+public class Customer  {
+	private  String customerId;
+    private  String fullName;
 
-	private  String bookId;
-    private  String title;
 }

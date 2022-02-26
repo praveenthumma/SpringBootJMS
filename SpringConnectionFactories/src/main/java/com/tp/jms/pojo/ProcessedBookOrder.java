@@ -1,4 +1,4 @@
-package com.tp.jmsproject.pojo;
+package com.tp.jms.pojo;
 
 
 import com.fasterxml.jackson.annotation.JsonCreator;
