@@ -18,8 +18,8 @@ JMS in Spring Examples.
 ## CachingConnectionFactory
 
 SingleConnectionFactory subclass that adds Session caching as well MessageProducer caching. 
-> - This ConnectionFactory also switches the "reconnectOnException" property to "true" by default, allowing for automatic recovery of the underlying Connection.
-> - By Default __setReconnectOnException(true)__ is true
+> - This ConnectionFactory also switches the __"reconnectOnException"__ property to __"true" by default__, allowing for automatic recovery of the underlying Connection.
+>> - __setReconnectOnException(true)__ is true
 > - Ignores calls to __connection.close()__
 > - By default, only one single Session will be cached, with further requested Sessions being created and disposed on demand. 
 > - Consider raising the __"sessionCacheSize"__ value in case of a high-concurrency environment.
