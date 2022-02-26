@@ -53,17 +53,32 @@ SingleConnectionFactory subclass that adds Session caching as well MessageProduc
 ### DeadLetterQueue Usage
 
 > -  Create a method that returns JmsTemplate and annotate it with
->>  @Bean 
->>  JmsTemplate jmsTemplate() {
->>  JmsTemplate jmsTemplate = new JmsTemplate(activeMqCachingConnectionFactory());
->>  jmsTemplate.setMessageConverter(jacksonMessageConverter());
->>  jmsTemplate.setDeliveryPersistent(true); // to not delete message
->>  jmsTemplate.setSessionTransacted(true); 	
->>  return jmsTemplate;
->>  }
+```java
+ 	@Bean
+ 	JmsTemplate jmsTemplate() {
+ 		JmsTemplate jmsTemplate = new JmsTemplate(activeMqCachingConnectionFactory());
+ 		jmsTemplate.setMessageConverter(jacksonMessageConverter());
+ 		jmsTemplate.setDeliveryPersistent(true); // to not delete message
+ 		jmsTemplate.setSessionTransacted(true);
+ 		return jmsTemplate;
+ 	}
+```
     
-> - In listnerFactory set 
->> 		factory.setErrorHandler(t->{
->>			LOGGER.info("Handling error in Listener for Messages, erro: "+ t.getMessage());;
->>		});
->>		return factory;
+> - In listnerFactory set __factory.setErrorHandler()__
+```	java
+	@Bean
+	public DefaultJmsListenerContainerFactory jmsListenerContainerFactory() {
+
+		DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
+		factory.setConnectionFactory(activeMqCachingConnectionFactory());
+		factory.setMessageConverter(jacksonMessageConverter());
+		factory.setTransactionManager(jmsTransactionManager());
+
+		factory.setErrorHandler(t -> {
+			LOGGER.info("Handling error in Listener for Messages, erro: " + t.getMessage());
+		});
+		
+		return factory;
+	}
+
+```
