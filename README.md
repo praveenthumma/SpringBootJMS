@@ -28,10 +28,48 @@ SingleConnectionFactory subclass that adds Session caching as well MessageProduc
 ## Usage
 > - Create a method that returns SingleConnectionFactory/CachingConnectionFactory and annotate it with @Bean
 > - pass the MOM connectionfactory to the SingleConnectionFactory/CachingConnectionFactory, In this case its ActiveMQConnectionFactory.
->> - __CachingConnectionFactory factory = new CachingConnectionFactory(new ActiveMQConnectionFactory(user,password,brokerUrl));__
+>> - SingleConnectionFactory
+```java
+        @Bean
+	public SingleConnectionFactory activeMqSingleConnectionFactory() {
+		SingleConnectionFactory factory = new SingleConnectionFactory(new ActiveMQConnectionFactory(user,password,brokerUrl));
+		factory.setReconnectOnException(true);
+		factory.setClientId("StoreFront");
+		return factory;		
+	}
+```
+>> - CachingConnectionFactory
+```java
+	@Bean
+	public CachingConnectionFactory activeMqCachingConnectionFactory() {
+		CachingConnectionFactory factory = new CachingConnectionFactory(
+				new ActiveMQConnectionFactory(user, password, brokerUrl));
+		// factory.setReconnectOnException(true); -- Set to true by default
+		factory.setClientId("StoreFront");
+		factory.setSessionCacheSize(10);
+		return factory;
+	}
+
+```
+
 > - set this in the ListenerContainerFactory
->> - __factory.setConnectionFactory(activeMqCachingConnectionFactory());__
->> - see the code example
+```java
+	@Bean
+	public DefaultJmsListenerContainerFactory jmsListenerContainerFactory() {
+
+		DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
+		factory.setConnectionFactory(activeMqCachingConnectionFactory());
+		factory.setMessageConverter(jacksonMessageConverter());
+		factory.setTransactionManager(jmsTransactionManager());
+
+		factory.setErrorHandler(t -> {
+			LOGGER.info("Handling error in Listener for Messages, erro: " + t.getMessage());
+		});
+		
+		return factory;
+	}
+```
+
 
 
 ## Transaction Management
