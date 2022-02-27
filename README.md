@@ -128,3 +128,159 @@ SingleConnectionFactory subclass that adds Session caching as well MessageProduc
 
 ```
 ## 3. Sessions, Headers , and Response Management
+### 3.1 JMS Headers
+#### JMS Specifications
+> - A JMS message header contains a number of predefined fields that contain values that both clients and providers use to identify and route messages.
+> - You can also create and set properties for messages if you need values in addition to those provided by the header fields. 
+> - These additional properties or customer headers if you like can be used in a message agnostic manner to help control the flow in your application by reading properties.
+#### JMS Headers Usage
+> - Use the  __convertAndSend(String destinationName, Object message, MessagePostProcessor postProcessor)__ by adding new __MessagePostProcessor()__
+```java
+        jmsTemplate.convertAndSend(BOOK_QUEUE, bookOrder, new MessagePostProcessor() {			
+			@Override
+			public Message postProcessMessage(Message message) throws JMSException {				
+				message.setStringProperty("bookOrderId",bookOrder.getBookOrderId());
+				message.setStringProperty("storeId", storeId);
+                message.setStringProperty("orderState", orderState);				
+				return message;
+			}
+		});
+    }
+```
+### 3.2 JMS Header and response Management
+> - Add __@Payload, @Header ...,MessageHeaders__ to your receive method
+>> - __@Payload__ Binds the method parameter to the payload of the message
+>> - __@Header__ Annotation which indicates that a method parameter should be bound to a message header.
+>> - __MessageHeaders__ Has the header info set by the MOM's
+#### Response Management Usage
+
+```java
+	  @JmsListener(destination = "book.order.queue")
+	    public void receive(@Payload BookOrder bookOrder,
+	                        @Header(name = "orderState") String orderState,
+	                        @Header(name = "bookOrderId") String bookOrderId,
+	                        @Header(name = "storeId") String storeId,
+	                        MessageHeaders messageHeaders){
+	        LOGGER.info("Message received!");
+	        LOGGER.info("Message is == " + bookOrder);
+	        LOGGER.info("Message property orderState = {}, bookOrderId = {}, storeId = {}", orderState, bookOrderId, storeId);
+	        LOGGER.info("messageHeaders = {}", messageHeaders);
+
+	        if(bookOrder.getBook().getTitle().startsWith("L")){
+	            throw new RuntimeException("bookOrderId=" + bookOrder.getBookOrderId() + " is of a book not allowed!");
+	        }
+	        warehouseProcessingService.processOrder(bookOrder, orderState, storeId);
+	    }
+}
+```
+
+### 3.3 Response Management using SendTo('destination')
+> - Spring has annotations that allow the default destination to be set along with the JmsListener
+> - This allows the message reveived to be sent to a new Queue after processing.
+> - to enable this add @SendTo just below the @JmsListener to the receive method 
+> - Change thre retrun type from void to the Object that you want to send to the destination Queue.
+```java
+	  @JmsListener(destination = "book.order.queue")
+	  @SendTo("book.order.processed.queue")
+	    public ProcessedBookOrder receive(@Payload BookOrder bookOrder,
+	                        @Header(name = "orderState") String orderState,
+	                        @Header(name = "bookOrderId") String bookOrderId,
+	                        @Header(name = "storeId") String storeId,
+	                        MessageHeaders messageHeaders){
+	        LOGGER.info("Message received!");
+	        LOGGER.info("Message is == " + bookOrder);
+	        LOGGER.info("Message property orderState = {}, bookOrderId = {}, storeId = {}", orderState, bookOrderId, storeId);
+	        LOGGER.info("messageHeaders = {}", messageHeaders);
+
+	        if(bookOrder.getBook().getTitle().startsWith("L")){
+	            throw new IllegalArgumentException("bookOrderId=" + bookOrder.getBookOrderId() + " is of a book not allowed!");
+	        }
+	        return warehouseProcessingService.processOrder(bookOrder, orderState, storeId);
+	    }
+```
+### 3.4 Response Management using MessageBuilder sendinf JMS Headers
+> - In the above wxample if you notice the messages in the processed queues does not have any custom properties
+> - To add custom properties use the MessageBuilder class
+> - Create a message builder class 
+```java
+    private Message<ProcessedBookOrder> build(ProcessedBookOrder bookOrder, String orderState, String storeId){
+        return MessageBuilder
+                .withPayload(bookOrder)
+                .setHeader("orderState", orderState)
+                .setHeader("storeId", storeId)
+                .build();
+    }    
+```
+>  - Wrap the return type with __Message<>__ wrapper 
+```java
+	  @JmsListener(destination = "book.order.queue")
+	  @SendTo("book.order.processed.queue")
+	    public Message<ProcessedBookOrder>  receive(@Payload BookOrder bookOrder,
+	                        @Header(name = "orderState") String orderState,
+	                        @Header(name = "bookOrderId") String bookOrderId,
+	                        @Header(name = "storeId") String storeId,
+	                        MessageHeaders messageHeaders){
+	        LOGGER.info("Message received!");
+	        LOGGER.info("Message is == " + bookOrder);
+	        LOGGER.info("Message property orderState = {}, bookOrderId = {}, storeId = {}", orderState, bookOrderId, storeId);
+	        LOGGER.info("messageHeaders = {}", messageHeaders);
+
+	        if(bookOrder.getBook().getTitle().startsWith("L")){
+	            throw new IllegalArgumentException("bookOrderId=" + bookOrder.getBookOrderId() + " is of a book not allowed!");
+	        }
+	        return warehouseProcessingService.processOrder(bookOrder, orderState, storeId);
+	    }
+ ```
+### 3.5 Response Management using JmsResponse  (Dynamic Destination strategy)
+> - JmsResponse Object lets you compute Destination response at runtime
+>> - If we are using JmsResponse wrapper , we dont need @SendTo()
+>>  - remove the MessageHeaders
+
+```java
+	  @JmsListener(destination = "book.order.queue")
+	    public JmsResponse<Message<ProcessedBookOrder>>  receive(@Payload BookOrder bookOrder,
+	                        @Header(name = "orderState") String orderState,
+	                        @Header(name = "bookOrderId") String bookOrderId,
+	                        @Header(name = "storeId") String storeId
+	                        ){
+	        LOGGER.info("Message received!");
+	        LOGGER.info("Message is == " + bookOrder);
+	        LOGGER.info("Message property orderState = {}, bookOrderId = {}, storeId = {}", orderState, bookOrderId, storeId);
+	        if(bookOrder.getBook().getTitle().startsWith("L")){
+	            throw new IllegalArgumentException("bookOrderId=" + bookOrder.getBookOrderId() + " is of a book not allowed!");
+	        }
+	        return warehouseProcessingService.processOrder(bookOrder, orderState, storeId);
+	    }
+
+```
+
+> -  Use the __JmsResponse.forQueue()__ to specify different destinations.
+
+```java
+    
+    private static final String PROCESSED_QUEUE = "book.order.processed.queue";
+    private static final String CANCELED_QUEUE = "book.order.canceled.queue";
+
+    @Autowired
+    private JmsTemplate jmsTemplate;
+
+    @Transactional
+    public JmsResponse<Message<ProcessedBookOrder>>  processOrder(BookOrder bookOrder, String orderState, String storeId){
+  	
+    	Message<ProcessedBookOrder> message;
+	
+        if("NEW".equalsIgnoreCase(orderState)){
+        	message = add(bookOrder, storeId);
+        	return JmsResponse.forQueue(message, PROCESSED_QUEUE);
+        } else if("UPDATE".equalsIgnoreCase(orderState)){
+        	message = update(bookOrder, storeId);
+        	return JmsResponse.forQueue(message, PROCESSED_QUEUE);
+        } else if("DELETE".equalsIgnoreCase(orderState)){
+        	message = delete(bookOrder,storeId);
+        	return JmsResponse.forQueue(message, CANCELED_QUEUE);
+        } else{
+            throw new IllegalArgumentException("WarehouseProcessingService.processOrder(...) - orderState does not match expected criteria!");
+        }
+
+    }
+```
