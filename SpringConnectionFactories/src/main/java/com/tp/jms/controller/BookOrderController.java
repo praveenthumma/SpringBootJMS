@@ -21,7 +21,8 @@ public class BookOrderController {
 		Book book = new Book("1","Designing Data intensive applications");
 		Customer customer = new Customer("1","Praveen Thumma");
 		BookOrder bookOrder = new BookOrder("1",book, customer);
-		bookOrderService.send(bookOrder);
+		bookOrderService.send(bookOrder,"Kharadi Store", "NEW");
+		bookOrderService.send(bookOrder,"Kharadi Store", "DELETE");
 		
 		
 	}

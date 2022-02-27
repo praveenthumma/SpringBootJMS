@@ -99,13 +99,13 @@ public class JmsConfig {
     	return new JmsTransactionManager(activeMqCachingConnectionFactory());    	
     }
     
-    @Bean 
-    JmsTemplate jmsTemplate() {
+    @Bean JmsTemplate jmsTemplate() {
     	JmsTemplate jmsTemplate = new JmsTemplate(activeMqCachingConnectionFactory());
     	jmsTemplate.setMessageConverter(jacksonMessageConverter());
     	jmsTemplate.setDeliveryPersistent(true); // to not delete message
-    	jmsTemplate.setSessionTransacted(true); 	
+    	jmsTemplate.setSessionTransacted(true);    	
     	return jmsTemplate;
+    	
     }
 
 
